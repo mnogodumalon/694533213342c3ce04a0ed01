@@ -2,95 +2,6 @@
   "appgroup_id": "694533213342c3ce04a0ed01",
   "appgroup_name": "Auftragsbest\u00e4tigungs-Abgleich",
   "apps": {
-    "bestellungen": {
-      "app_id": "694532fe73b552902caa58ed",
-      "name": "Bestellungen",
-      "controls": {
-        "bestellnummer": {
-          "identifier": "bestellnummer",
-          "label": "Bestellnummer",
-          "type": "string",
-          "subtype": "text",
-          "fulltype": "string/text",
-          "description": "A string value not longer than 4000 characters (or `null`)."
-        },
-        "bestelldatum": {
-          "identifier": "bestelldatum",
-          "label": "Bestelldatum",
-          "type": "date",
-          "subtype": "date",
-          "fulltype": "date/date",
-          "description": "A calendar date consisting of year, month and day. (Or `null`/`None`)\n\nThe field value will be a string in the format `<YYYY>-<MM>-<DD>` or `null`.\n\nFor example: `1642-12-25`."
-        },
-        "lieferant": {
-          "identifier": "lieferant",
-          "label": "Lieferant",
-          "type": "string",
-          "subtype": "text",
-          "fulltype": "string/text",
-          "description": "A string value not longer than 4000 characters (or `null`)."
-        },
-        "artikelnummer": {
-          "identifier": "artikelnummer",
-          "label": "Artikelnummer",
-          "type": "string",
-          "subtype": "text",
-          "fulltype": "string/text",
-          "description": "A string value not longer than 4000 characters (or `null`)."
-        },
-        "artikelbezeichnung": {
-          "identifier": "artikelbezeichnung",
-          "label": "Artikelbezeichnung",
-          "type": "string",
-          "subtype": "text",
-          "fulltype": "string/text",
-          "description": "A string value not longer than 4000 characters (or `null`)."
-        },
-        "bestellte_menge": {
-          "identifier": "bestellte_menge",
-          "label": "Bestellte Menge",
-          "type": "number",
-          "subtype": null,
-          "fulltype": "number",
-          "description": "A decimal number value (or `null`).",
-          "precision": null
-        },
-        "mengeneinheit": {
-          "identifier": "mengeneinheit",
-          "label": "Mengeneinheit",
-          "type": "string",
-          "subtype": "text",
-          "fulltype": "string/text",
-          "description": "A string value not longer than 4000 characters (or `null`)."
-        },
-        "einzelpreis": {
-          "identifier": "einzelpreis",
-          "label": "Einzelpreis (EUR)",
-          "type": "number",
-          "subtype": null,
-          "fulltype": "number",
-          "description": "A decimal number value (or `null`).",
-          "precision": null
-        },
-        "gesamtpreis": {
-          "identifier": "gesamtpreis",
-          "label": "Gesamtpreis (EUR)",
-          "type": "number",
-          "subtype": null,
-          "fulltype": "number",
-          "description": "A decimal number value (or `null`).",
-          "precision": null
-        },
-        "erwartetes_lieferdatum": {
-          "identifier": "erwartetes_lieferdatum",
-          "label": "Erwartetes Lieferdatum",
-          "type": "date",
-          "subtype": "date",
-          "fulltype": "date/date",
-          "description": "A calendar date consisting of year, month and day. (Or `null`/`None`)\n\nThe field value will be a string in the format `<YYYY>-<MM>-<DD>` or `null`.\n\nFor example: `1642-12-25`."
-        }
-      }
-    },
     "auftragsbestaetigungen": {
       "app_id": "69453303665fce2960971eb7",
       "name": "Auftragsbest\u00e4tigungen",
@@ -241,10 +152,10 @@
           "fulltype": "lookup/radio",
           "description": "One selected option of multiple available options (or `null`).\n\nThe available options are defined in the `lookup_data` attribute of this control's LivingApp.\n\nThe field value will be the key in this `lookup_data` attribute or `null`.",
           "lookup_data": {
-            "freigegeben": "Freigegeben",
+            "abgelehnt": "Abgelehnt",
             "rueckfrage": "R\u00fcckfrage an Lieferant",
-            "freigegeben_mit_auflagen": "Freigegeben mit Auflagen",
-            "abgelehnt": "Abgelehnt"
+            "freigegeben": "Freigegeben",
+            "freigegeben_mit_auflagen": "Freigegeben mit Auflagen"
           }
         },
         "kommentar": {
@@ -274,6 +185,95 @@
         "nachverfolgungsdatum": {
           "identifier": "nachverfolgungsdatum",
           "label": "Nachverfolgung bis",
+          "type": "date",
+          "subtype": "date",
+          "fulltype": "date/date",
+          "description": "A calendar date consisting of year, month and day. (Or `null`/`None`)\n\nThe field value will be a string in the format `<YYYY>-<MM>-<DD>` or `null`.\n\nFor example: `1642-12-25`."
+        }
+      }
+    },
+    "bestellungen": {
+      "app_id": "694532fe73b552902caa58ed",
+      "name": "Bestellungen",
+      "controls": {
+        "bestellnummer": {
+          "identifier": "bestellnummer",
+          "label": "Bestellnummer",
+          "type": "string",
+          "subtype": "text",
+          "fulltype": "string/text",
+          "description": "A string value not longer than 4000 characters (or `null`)."
+        },
+        "bestelldatum": {
+          "identifier": "bestelldatum",
+          "label": "Bestelldatum",
+          "type": "date",
+          "subtype": "date",
+          "fulltype": "date/date",
+          "description": "A calendar date consisting of year, month and day. (Or `null`/`None`)\n\nThe field value will be a string in the format `<YYYY>-<MM>-<DD>` or `null`.\n\nFor example: `1642-12-25`."
+        },
+        "lieferant": {
+          "identifier": "lieferant",
+          "label": "Lieferant",
+          "type": "string",
+          "subtype": "text",
+          "fulltype": "string/text",
+          "description": "A string value not longer than 4000 characters (or `null`)."
+        },
+        "artikelnummer": {
+          "identifier": "artikelnummer",
+          "label": "Artikelnummer",
+          "type": "string",
+          "subtype": "text",
+          "fulltype": "string/text",
+          "description": "A string value not longer than 4000 characters (or `null`)."
+        },
+        "artikelbezeichnung": {
+          "identifier": "artikelbezeichnung",
+          "label": "Artikelbezeichnung",
+          "type": "string",
+          "subtype": "text",
+          "fulltype": "string/text",
+          "description": "A string value not longer than 4000 characters (or `null`)."
+        },
+        "bestellte_menge": {
+          "identifier": "bestellte_menge",
+          "label": "Bestellte Menge",
+          "type": "number",
+          "subtype": null,
+          "fulltype": "number",
+          "description": "A decimal number value (or `null`).",
+          "precision": null
+        },
+        "mengeneinheit": {
+          "identifier": "mengeneinheit",
+          "label": "Mengeneinheit",
+          "type": "string",
+          "subtype": "text",
+          "fulltype": "string/text",
+          "description": "A string value not longer than 4000 characters (or `null`)."
+        },
+        "einzelpreis": {
+          "identifier": "einzelpreis",
+          "label": "Einzelpreis (EUR)",
+          "type": "number",
+          "subtype": null,
+          "fulltype": "number",
+          "description": "A decimal number value (or `null`).",
+          "precision": null
+        },
+        "gesamtpreis": {
+          "identifier": "gesamtpreis",
+          "label": "Gesamtpreis (EUR)",
+          "type": "number",
+          "subtype": null,
+          "fulltype": "number",
+          "description": "A decimal number value (or `null`).",
+          "precision": null
+        },
+        "erwartetes_lieferdatum": {
+          "identifier": "erwartetes_lieferdatum",
+          "label": "Erwartetes Lieferdatum",
           "type": "date",
           "subtype": "date",
           "fulltype": "date/date",
@@ -318,10 +318,10 @@
           "fulltype": "multiplelookup/checkbox",
           "description": "Arbitrary number of selected options out of multiple available ones.\n\nThe available options are defined in the `lookup_data` attribute of this control's LivingApp.\n\nThe field value will be a list of keys from this `lookup_data` attribute.",
           "lookup_data": {
-            "mengenabweichung": "Mengenabweichung",
             "preisabweichung": "Preisabweichung",
             "artikelnummernabweichung": "Artikelnummernabweichung",
-            "lieferterminabweichung": "Lieferterminabweichung"
+            "lieferterminabweichung": "Lieferterminabweichung",
+            "mengenabweichung": "Mengenabweichung"
           }
         },
         "mengenabweichung_wert": {
@@ -437,9 +437,9 @@
   },
   "metadata": {
     "apps_list": [
-      "Bestellungen",
       "Auftragsbest\u00e4tigungen",
       "Freigabe-Workflow",
+      "Bestellungen",
       "Abgleichsergebnisse"
     ]
   }

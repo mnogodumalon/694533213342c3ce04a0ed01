@@ -1,6 +1,6 @@
 // AUTOMATICALLY GENERATED SERVICE
 import { APP_IDS } from '@/types/app';
-import type { Bestellungen, Auftragsbestaetigungen, FreigabeWorkflow, Abgleichsergebnisse } from '@/types/app';
+import type { Auftragsbestaetigungen, FreigabeWorkflow, Bestellungen, Abgleichsergebnisse } from '@/types/app';
 
 // Base Configuration
 const API_BASE_URL = 'https://my.living-apps.de/rest';
@@ -31,27 +31,6 @@ async function callApi(method: string, endpoint: string, data?: any) {
 }
 
 export class LivingAppsService {
-  // --- BESTELLUNGEN ---
-  static async getBestellungen(): Promise<Bestellungen[]> {
-    const data = await callApi('GET', `/apps/${APP_IDS.BESTELLUNGEN}/records`);
-    return Object.entries(data).map(([id, rec]: [string, any]) => ({
-      record_id: id, ...rec
-    }));
-  }
-  static async getBestellungenEntry(id: string): Promise<Bestellungen | undefined> {
-    const data = await callApi('GET', `/apps/${APP_IDS.BESTELLUNGEN}/records/${id}`);
-    return { record_id: data.id, ...data };
-  }
-  static async createBestellungenEntry(fields: Bestellungen['fields']) {
-    return callApi('POST', `/apps/${APP_IDS.BESTELLUNGEN}/records`, { fields });
-  }
-  static async updateBestellungenEntry(id: string, fields: Partial<Bestellungen['fields']>) {
-    return callApi('PATCH', `/apps/${APP_IDS.BESTELLUNGEN}/records/${id}`, { fields });
-  }
-  static async deleteBestellungenEntry(id: string) {
-    return callApi('DELETE', `/apps/${APP_IDS.BESTELLUNGEN}/records/${id}`);
-  }
-
   // --- AUFTRAGSBESTAETIGUNGEN ---
   static async getAuftragsbestaetigungen(): Promise<Auftragsbestaetigungen[]> {
     const data = await callApi('GET', `/apps/${APP_IDS.AUFTRAGSBESTAETIGUNGEN}/records`);
@@ -92,6 +71,27 @@ export class LivingAppsService {
   }
   static async deleteFreigabeWorkflowEntry(id: string) {
     return callApi('DELETE', `/apps/${APP_IDS.FREIGABE_WORKFLOW}/records/${id}`);
+  }
+
+  // --- BESTELLUNGEN ---
+  static async getBestellungen(): Promise<Bestellungen[]> {
+    const data = await callApi('GET', `/apps/${APP_IDS.BESTELLUNGEN}/records`);
+    return Object.entries(data).map(([id, rec]: [string, any]) => ({
+      record_id: id, ...rec
+    }));
+  }
+  static async getBestellungenEntry(id: string): Promise<Bestellungen | undefined> {
+    const data = await callApi('GET', `/apps/${APP_IDS.BESTELLUNGEN}/records/${id}`);
+    return { record_id: data.id, ...data };
+  }
+  static async createBestellungenEntry(fields: Bestellungen['fields']) {
+    return callApi('POST', `/apps/${APP_IDS.BESTELLUNGEN}/records`, { fields });
+  }
+  static async updateBestellungenEntry(id: string, fields: Partial<Bestellungen['fields']>) {
+    return callApi('PATCH', `/apps/${APP_IDS.BESTELLUNGEN}/records/${id}`, { fields });
+  }
+  static async deleteBestellungenEntry(id: string) {
+    return callApi('DELETE', `/apps/${APP_IDS.BESTELLUNGEN}/records/${id}`);
   }
 
   // --- ABGLEICHSERGEBNISSE ---

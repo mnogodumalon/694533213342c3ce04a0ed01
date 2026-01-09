@@ -1,23 +1,5 @@
 // AUTOMATICALLY GENERATED TYPES - DO NOT EDIT
 
-export interface Bestellungen {
-  record_id: string;
-  createdat: string;
-  updatedat: string | null;
-  fields: {
-    bestellnummer?: string;
-    bestelldatum?: string; // Format: YYYY-MM-DD oder ISO String
-    lieferant?: string;
-    artikelnummer?: string;
-    artikelbezeichnung?: string;
-    bestellte_menge?: number;
-    mengeneinheit?: string;
-    einzelpreis?: number;
-    gesamtpreis?: number;
-    erwartetes_lieferdatum?: string; // Format: YYYY-MM-DD oder ISO String
-  };
-}
-
 export interface Auftragsbestaetigungen {
   record_id: string;
   createdat: string;
@@ -55,6 +37,24 @@ export interface FreigabeWorkflow {
   };
 }
 
+export interface Bestellungen {
+  record_id: string;
+  createdat: string;
+  updatedat: string | null;
+  fields: {
+    bestellnummer?: string;
+    bestelldatum?: string; // Format: YYYY-MM-DD oder ISO String
+    lieferant?: string;
+    artikelnummer?: string;
+    artikelbezeichnung?: string;
+    bestellte_menge?: number;
+    mengeneinheit?: string;
+    einzelpreis?: number;
+    gesamtpreis?: number;
+    erwartetes_lieferdatum?: string; // Format: YYYY-MM-DD oder ISO String
+  };
+}
+
 export interface Abgleichsergebnisse {
   record_id: string;
   createdat: string;
@@ -80,14 +80,14 @@ export interface Abgleichsergebnisse {
 }
 
 export const APP_IDS = {
-  BESTELLUNGEN: '694532fe73b552902caa58ed',
   AUFTRAGSBESTAETIGUNGEN: '69453303665fce2960971eb7',
   FREIGABE_WORKFLOW: '69453305f1dda178412288b8',
+  BESTELLUNGEN: '694532fe73b552902caa58ed',
   ABGLEICHSERGEBNISSE: '694533049c70094c80005f30',
 } as const;
 
 // Helper Types for creating new records
-export type CreateBestellungen = Bestellungen['fields'];
 export type CreateAuftragsbestaetigungen = Auftragsbestaetigungen['fields'];
 export type CreateFreigabeWorkflow = FreigabeWorkflow['fields'];
+export type CreateBestellungen = Bestellungen['fields'];
 export type CreateAbgleichsergebnisse = Abgleichsergebnisse['fields'];
