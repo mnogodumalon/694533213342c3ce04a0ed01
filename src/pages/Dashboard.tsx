@@ -1,157 +1,223 @@
 import { useEffect, useState } from 'react';
-import { LivingAppsService, extractRecordId } from '@/services/livingAppsService';
-import type { Bestellungen, Auftragsbestaetigungen, Abgleichsergebnisse, FreigabeWorkflow } from '@/types/app';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { LivingAppsService } from '@/services/livingAppsService';
+import type { Bestellungen, Auftragsbestaetigungen, FreigabeWorkflow, Abgleichsergebnisse } from '@/types/app';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   TrendingUp,
   TrendingDown,
   AlertCircle,
   CheckCircle,
   Clock,
+  XCircle,
   FileText,
-  PlusCircle,
-  Package,
-  AlertTriangle
+  BarChart3,
+  PlusCircle
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
-// Chart Colors
+// Color Palette
 const COLORS = {
-  mengenabweichung: '#ef4444',
-  preisabweichung: '#f59e0b',
-  artikelnummernabweichung: '#8b5cf6',
-  lieferterminabweichung: '#06b6d4',
-  offen: '#64748b',
-  in_pruefung: '#f59e0b',
-  freigegeben: '#22c55e',
-  abgelehnt: '#ef4444',
+  primary: '#3b82f6',
+  success: '#10b981',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+  info: '#06b6d4',
 };
 
-interface DashboardData {
-  bestellungen: Bestellungen[];
-  auftragsbestaetigungen: Auftragsbestaetigungen[];
-  abgleichsergebnisse: Abgleichsergebnisse[];
-  freigabeWorkflow: FreigabeWorkflow[];
-}
+const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
-interface BestellungFormData {
-  bestellnummer: string;
-  bestelldatum: string;
-  lieferant: string;
-  artikelnummer: string;
-  artikelbezeichnung: string;
-  bestellte_menge: string;
-  mengeneinheit: string;
-  einzelpreis: string;
-  erwartetes_lieferdatum: string;
+interface DashboardStats {
+  totalAbgleiche: number;
+  offeneAbgleiche: number;
+  abweichungenCount: number;
+  freigegeben: number;
+  inPruefung: number;
+  abgelehnt: number;
+  kritischeAbweichungen: number;
+  durchschnittlichePreisabweichung: number;
+  durchschnittlicheMengenabweichung: number;
 }
 
 export default function Dashboard() {
-  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [formData, setFormData] = useState<BestellungFormData>({
-    bestellnummer: '',
-    bestelldatum: format(new Date(), 'yyyy-MM-dd'),
-    lieferant: '',
-    artikelnummer: '',
-    artikelbezeichnung: '',
-    bestellte_menge: '',
-    mengeneinheit: 'Stück',
-    einzelpreis: '',
-    erwartetes_lieferdatum: '',
+
+  // Data State
+  const [bestellungen, setBestellungen] = useState<Bestellungen[]>([]);
+  const [auftragsbestaetigungen, setAuftragsbestaetigungen] = useState<Auftragsbestaetigungen[]>([]);
+  const [abgleichsergebnisse, setAbgleichsergebnisse] = useState<Abgleichsergebnisse[]>([]);
+  const [freigabeWorkflow, setFreigabeWorkflow] = useState<FreigabeWorkflow[]>([]);
+
+  const [stats, setStats] = useState<DashboardStats>({
+    totalAbgleiche: 0,
+    offeneAbgleiche: 0,
+    abweichungenCount: 0,
+    freigegeben: 0,
+    inPruefung: 0,
+    abgelehnt: 0,
+    kritischeAbweichungen: 0,
+    durchschnittlichePreisabweichung: 0,
+    durchschnittlicheMengenabweichung: 0,
   });
 
+  // Load Data
   useEffect(() => {
     loadData();
   }, []);
 
-  async function loadData() {
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setError(null);
-      const [bestellungen, auftragsbestaetigungen, abgleichsergebnisse, freigabeWorkflow] = await Promise.all([
+      const [bestellungenData, abData, abgleichData, freigabeData] = await Promise.all([
         LivingAppsService.getBestellungen(),
         LivingAppsService.getAuftragsbestaetigungen(),
         LivingAppsService.getAbgleichsergebnisse(),
         LivingAppsService.getFreigabeWorkflow(),
       ]);
-      setData({ bestellungen, auftragsbestaetigungen, abgleichsergebnisse, freigabeWorkflow });
+
+      setBestellungen(bestellungenData);
+      setAuftragsbestaetigungen(abData);
+      setAbgleichsergebnisse(abgleichData);
+      setFreigabeWorkflow(freigabeData);
+
+      // Calculate Stats
+      calculateStats(abgleichData);
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Laden der Daten');
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  async function handleCreateBestellung(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      const gesamtpreis = parseFloat(formData.einzelpreis) * parseFloat(formData.bestellte_menge);
-      await LivingAppsService.createBestellungenEntry({
-        bestellnummer: formData.bestellnummer,
-        bestelldatum: formData.bestelldatum,
-        lieferant: formData.lieferant,
-        artikelnummer: formData.artikelnummer,
-        artikelbezeichnung: formData.artikelbezeichnung,
-        bestellte_menge: parseFloat(formData.bestellte_menge),
-        mengeneinheit: formData.mengeneinheit,
-        einzelpreis: parseFloat(formData.einzelpreis),
-        gesamtpreis: gesamtpreis,
-        erwartetes_lieferdatum: formData.erwartetes_lieferdatum,
-      });
-      setDialogOpen(false);
-      setFormData({
-        bestellnummer: '',
-        bestelldatum: format(new Date(), 'yyyy-MM-dd'),
-        lieferant: '',
-        artikelnummer: '',
-        artikelbezeichnung: '',
-        bestellte_menge: '',
-        mengeneinheit: 'Stück',
-        einzelpreis: '',
-        erwartetes_lieferdatum: '',
-      });
-      await loadData();
-    } catch (err) {
-      alert('Fehler beim Erstellen: ' + (err instanceof Error ? err.message : 'Unbekannter Fehler'));
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  const calculateStats = (abgleiche: Abgleichsergebnisse[]) => {
+    const totalAbgleiche = abgleiche.length;
+    const offeneAbgleiche = abgleiche.filter(a => a.fields.freigabestatus === 'offen' || a.fields.freigabestatus === 'in_pruefung').length;
+    const abweichungenCount = abgleiche.filter(a => a.fields.abweichungen_vorhanden === true).length;
+    const freigegeben = abgleiche.filter(a => a.fields.freigabestatus === 'freigegeben').length;
+    const inPruefung = abgleiche.filter(a => a.fields.freigabestatus === 'in_pruefung').length;
+    const abgelehnt = abgleiche.filter(a => a.fields.freigabestatus === 'abgelehnt').length;
+
+    // Kritische Abweichungen: Außerhalb der Toleranz
+    const kritischeAbweichungen = abgleiche.filter(a =>
+      (a.fields.innerhalb_mengentoleran === false && a.fields.mengenabweichung_prozent != null) ||
+      (a.fields.innerhalb_preistoleranz === false && a.fields.preisabweichung_prozent != null)
+    ).length;
+
+    // Durchschnittliche Abweichungen
+    const preisAbweichungen = abgleiche
+      .filter(a => a.fields.preisabweichung_prozent != null)
+      .map(a => Math.abs(a.fields.preisabweichung_prozent || 0));
+    const mengenAbweichungen = abgleiche
+      .filter(a => a.fields.mengenabweichung_prozent != null)
+      .map(a => Math.abs(a.fields.mengenabweichung_prozent || 0));
+
+    const durchschnittlichePreisabweichung = preisAbweichungen.length > 0
+      ? preisAbweichungen.reduce((a, b) => a + b, 0) / preisAbweichungen.length
+      : 0;
+    const durchschnittlicheMengenabweichung = mengenAbweichungen.length > 0
+      ? mengenAbweichungen.reduce((a, b) => a + b, 0) / mengenAbweichungen.length
+      : 0;
+
+    setStats({
+      totalAbgleiche,
+      offeneAbgleiche,
+      abweichungenCount,
+      freigegeben,
+      inPruefung,
+      abgelehnt,
+      kritischeAbweichungen,
+      durchschnittlichePreisabweichung,
+      durchschnittlicheMengenabweichung,
+    });
+  };
+
+  // Chart Data Preparation
+  const getAbweichungstypenData = () => {
+    const types: Record<string, number> = {
+      'Mengenabweichung': 0,
+      'Preisabweichung': 0,
+      'Artikelnummernabweichung': 0,
+      'Lieferterminabweichung': 0,
+    };
+
+    abgleichsergebnisse.forEach(abgleich => {
+      const abweichungstyp = abgleich.fields.abweichungstyp;
+      if (abweichungstyp) {
+        // abweichungstyp ist multiplelookup/checkbox -> Array oder String
+        const typen = Array.isArray(abweichungstyp) ? abweichungstyp : [abweichungstyp];
+        typen.forEach((typ: string) => {
+          if (typ === 'mengenabweichung') types['Mengenabweichung']++;
+          if (typ === 'preisabweichung') types['Preisabweichung']++;
+          if (typ === 'artikelnummernabweichung') types['Artikelnummernabweichung']++;
+          if (typ === 'lieferterminabweichung') types['Lieferterminabweichung']++;
+        });
+      }
+    });
+
+    return Object.entries(types)
+      .map(([name, value]) => ({ name, value }))
+      .filter(item => item.value > 0);
+  };
+
+  const getFreigabestatusData = () => {
+    const statusLabels: Record<string, string> = {
+      offen: 'Offen',
+      in_pruefung: 'In Prüfung',
+      freigegeben: 'Freigegeben',
+      abgelehnt: 'Abgelehnt',
+    };
+
+    return [
+      { name: statusLabels.offen, value: abgleichsergebnisse.filter(a => a.fields.freigabestatus === 'offen').length },
+      { name: statusLabels.in_pruefung, value: stats.inPruefung },
+      { name: statusLabels.freigegeben, value: stats.freigegeben },
+      { name: statusLabels.abgelehnt, value: stats.abgelehnt },
+    ].filter(item => item.value > 0);
+  };
+
+  const getToleranzanalyseData = () => {
+    const innerhalbToleranz = abgleichsergebnisse.filter(a =>
+      a.fields.innerhalb_mengentoleran === true && a.fields.innerhalb_preistoleranz === true
+    ).length;
+    const ausserhalbToleranz = abgleichsergebnisse.filter(a =>
+      a.fields.innerhalb_mengentoleran === false || a.fields.innerhalb_preistoleranz === false
+    ).length;
+
+    return [
+      { name: 'Innerhalb Toleranz', Anzahl: innerhalbToleranz },
+      { name: 'Außerhalb Toleranz', Anzahl: ausserhalbToleranz },
+    ].filter(item => item.Anzahl > 0);
+  };
 
   // Loading State
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-900 mx-auto mb-4"></div>
-          <p className="text-slate-600">Lade Dashboard-Daten...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Lade Dashboard...</p>
         </div>
       </div>
     );
   }
 
   // Error State
-  if (error || !data) {
+  if (error) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <Alert variant="destructive" className="max-w-md">
+      <div className="container mx-auto p-6">
+        <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {error || 'Keine Daten verfügbar'}
-            <Button onClick={loadData} variant="outline" className="mt-4 w-full">
+            {error}
+            <Button variant="outline" size="sm" onClick={loadData} className="ml-4">
               Erneut versuchen
             </Button>
           </AlertDescription>
@@ -160,458 +226,339 @@ export default function Dashboard() {
     );
   }
 
-  // Calculate KPIs
-  const totalBestellungen = data.bestellungen.length;
-  const totalAuftragsbestaetigungen = data.auftragsbestaetigungen.length;
-  const abgleichsergebnisseMitAbweichungen = data.abgleichsergebnisse.filter(a => a.fields.abweichungen_vorhanden).length;
-  const abgleichsergebnisseOhneAbweichungen = data.abgleichsergebnisse.length - abgleichsergebnisseMitAbweichungen;
+  // Empty State
+  if (abgleichsergebnisse.length === 0) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+          <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+          <h2 className="text-2xl font-semibold mb-2">Keine Abgleichsergebnisse vorhanden</h2>
+          <p className="text-muted-foreground mb-6">
+            Es wurden noch keine Auftragsbestätigungen mit Bestellungen abgeglichen.
+          </p>
+          <Button size="lg" onClick={() => window.location.reload()}>
+            <PlusCircle className="mr-2 h-5 w-5" />
+            Neuen Abgleich starten
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-  const statusCounts = {
-    offen: data.abgleichsergebnisse.filter(a => a.fields.freigabestatus === 'offen').length,
-    in_pruefung: data.abgleichsergebnisse.filter(a => a.fields.freigabestatus === 'in_pruefung').length,
-    freigegeben: data.abgleichsergebnisse.filter(a => a.fields.freigabestatus === 'freigegeben').length,
-    abgelehnt: data.abgleichsergebnisse.filter(a => a.fields.freigabestatus === 'abgelehnt').length,
-  };
-
-  const totalGesamtpreis = data.bestellungen.reduce((sum, b) => sum + (b.fields.gesamtpreis || 0), 0);
-
-  // Abweichungstypen analysieren (multiplelookup ist ein Array von Keys)
-  const abweichungsTypenCount: Record<string, number> = {
-    mengenabweichung: 0,
-    preisabweichung: 0,
-    artikelnummernabweichung: 0,
-    lieferterminabweichung: 0,
-  };
-
-  data.abgleichsergebnisse.forEach(a => {
-    if (a.fields.abweichungstyp) {
-      // abweichungstyp ist ein String wie "mengenabweichung,preisabweichung"
-      const typen = a.fields.abweichungstyp.split(',').map(t => t.trim());
-      typen.forEach(typ => {
-        if (typ in abweichungsTypenCount) {
-          abweichungsTypenCount[typ]++;
-        }
-      });
-    }
-  });
-
-  const abweichungsChartData = [
-    { name: 'Mengenabweichung', value: abweichungsTypenCount.mengenabweichung, color: COLORS.mengenabweichung },
-    { name: 'Preisabweichung', value: abweichungsTypenCount.preisabweichung, color: COLORS.preisabweichung },
-    { name: 'Artikelnr.-Abw.', value: abweichungsTypenCount.artikelnummernabweichung, color: COLORS.artikelnummernabweichung },
-    { name: 'Liefertermin-Abw.', value: abweichungsTypenCount.lieferterminabweichung, color: COLORS.lieferterminabweichung },
-  ].filter(d => d.value > 0);
-
-  const freigabeStatusChartData = [
-    { name: 'Offen', value: statusCounts.offen, color: COLORS.offen },
-    { name: 'In Prüfung', value: statusCounts.in_pruefung, color: COLORS.in_pruefung },
-    { name: 'Freigegeben', value: statusCounts.freigegeben, color: COLORS.freigegeben },
-    { name: 'Abgelehnt', value: statusCounts.abgelehnt, color: COLORS.abgelehnt },
-  ].filter(d => d.value > 0);
-
-  // Kritische Fälle: Abweichungen mit Status "offen" oder "abgelehnt"
-  const kritischeFaelle = data.abgleichsergebnisse.filter(a =>
-    a.fields.abweichungen_vorhanden &&
-    (a.fields.freigabestatus === 'offen' || a.fields.freigabestatus === 'abgelehnt')
-  );
-
+  // Main Dashboard
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">Auftragsbestätigungs-Abgleich</h1>
-              <p className="text-sm text-slate-600 mt-1">Überwachung und Verwaltung von Bestellabgleichen</p>
-            </div>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <PlusCircle className="h-4 w-4" />
-                  Neue Bestellung
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Neue Bestellung erstellen</DialogTitle>
-                  <DialogDescription>
-                    Erfassen Sie eine neue Bestellung im System
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleCreateBestellung} className="space-y-4 mt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="bestellnummer">Bestellnummer *</Label>
-                      <Input
-                        id="bestellnummer"
-                        required
-                        value={formData.bestellnummer}
-                        onChange={e => setFormData({ ...formData, bestellnummer: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="bestelldatum">Bestelldatum *</Label>
-                      <Input
-                        id="bestelldatum"
-                        type="date"
-                        required
-                        value={formData.bestelldatum}
-                        onChange={e => setFormData({ ...formData, bestelldatum: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="lieferant">Lieferant *</Label>
-                    <Input
-                      id="lieferant"
-                      required
-                      value={formData.lieferant}
-                      onChange={e => setFormData({ ...formData, lieferant: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="artikelnummer">Artikelnummer *</Label>
-                      <Input
-                        id="artikelnummer"
-                        required
-                        value={formData.artikelnummer}
-                        onChange={e => setFormData({ ...formData, artikelnummer: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="artikelbezeichnung">Artikelbezeichnung *</Label>
-                      <Input
-                        id="artikelbezeichnung"
-                        required
-                        value={formData.artikelbezeichnung}
-                        onChange={e => setFormData({ ...formData, artikelbezeichnung: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="bestellte_menge">Menge *</Label>
-                      <Input
-                        id="bestellte_menge"
-                        type="number"
-                        step="0.01"
-                        required
-                        value={formData.bestellte_menge}
-                        onChange={e => setFormData({ ...formData, bestellte_menge: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="mengeneinheit">Einheit *</Label>
-                      <Input
-                        id="mengeneinheit"
-                        required
-                        value={formData.mengeneinheit}
-                        onChange={e => setFormData({ ...formData, mengeneinheit: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="einzelpreis">Einzelpreis (EUR) *</Label>
-                      <Input
-                        id="einzelpreis"
-                        type="number"
-                        step="0.01"
-                        required
-                        value={formData.einzelpreis}
-                        onChange={e => setFormData({ ...formData, einzelpreis: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  {formData.bestellte_menge && formData.einzelpreis && (
-                    <div className="bg-slate-100 p-3 rounded-md">
-                      <p className="text-sm text-slate-600">
-                        Gesamtpreis: <span className="font-semibold text-slate-900">
-                          {(parseFloat(formData.einzelpreis) * parseFloat(formData.bestellte_menge)).toFixed(2)} EUR
-                        </span>
-                      </p>
-                    </div>
-                  )}
-
-                  <div>
-                    <Label htmlFor="erwartetes_lieferdatum">Erwartetes Lieferdatum *</Label>
-                    <Input
-                      id="erwartetes_lieferdatum"
-                      type="date"
-                      required
-                      value={formData.erwartetes_lieferdatum}
-                      onChange={e => setFormData({ ...formData, erwartetes_lieferdatum: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="flex gap-2 pt-4">
-                    <Button type="submit" disabled={submitting} className="flex-1">
-                      {submitting ? 'Erstelle...' : 'Bestellung erstellen'}
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={submitting}>
-                      Abbrechen
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Auftragsbestätigungs-Abgleich</h1>
+          <p className="text-muted-foreground mt-1">
+            Übersicht über alle Abgleichsergebnisse und Freigaben
+          </p>
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Bestellungen</CardTitle>
-              <Package className="h-4 w-4 text-slate-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalBestellungen}</div>
-              <p className="text-xs text-slate-600 mt-1">
-                Gesamtwert: {totalGesamtpreis.toFixed(2)} EUR
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Auftragsbestätigungen</CardTitle>
-              <FileText className="h-4 w-4 text-slate-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalAuftragsbestaetigungen}</div>
-              <p className="text-xs text-slate-600 mt-1">
-                Empfangene PDFs
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Abweichungen</CardTitle>
-              <AlertCircle className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{abgleichsergebnisseMitAbweichungen}</div>
-              <p className="text-xs text-slate-600 mt-1">
-                {abgleichsergebnisseOhneAbweichungen} ohne Abweichung
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Freigabestatus</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{statusCounts.freigegeben}</div>
-              <p className="text-xs text-slate-600 mt-1">
-                {statusCounts.offen} offen, {statusCounts.in_pruefung} in Prüfung
-              </p>
-            </CardContent>
-          </Card>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={loadData}>
+            Aktualisieren
+          </Button>
+          <Button size="lg">
+            <PlusCircle className="mr-2 h-5 w-5" />
+            Neuer Abgleich
+          </Button>
         </div>
+      </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Abweichungstypen Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Abweichungstypen</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {abweichungsChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={abweichungsChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                      {abweichungsChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-[300px] flex items-center justify-center text-slate-400">
-                  <div className="text-center">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>Keine Abweichungen vorhanden</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+      {/* Critical Alerts */}
+      {stats.kritischeAbweichungen > 0 && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="font-medium">
+            {stats.kritischeAbweichungen} kritische Abweichung{stats.kritischeAbweichungen > 1 ? 'en' : ''} außerhalb der Toleranz erfordern sofortige Aufmerksamkeit!
+          </AlertDescription>
+        </Alert>
+      )}
 
-          {/* Freigabestatus Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Freigabestatus-Verteilung</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {freigabeStatusChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={freigabeStatusChartData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {freigabeStatusChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-[300px] flex items-center justify-center text-slate-400">
-                  <div className="text-center">
-                    <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>Keine Freigabedaten vorhanden</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Kritische Fälle */}
+      {/* KPI Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Total Abgleiche */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
-              Kritische Fälle ({kritischeFaelle.length})
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Gesamt Abgleiche</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {kritischeFaelle.length > 0 ? (
-              <div className="space-y-4">
-                {kritischeFaelle.slice(0, 10).map((abgleich) => {
-                  const bestellungId = extractRecordId(abgleich.fields.bestellung);
-                  const bestellung = bestellungId ? data.bestellungen.find(b => b.record_id === bestellungId) : null;
+            <div className="text-2xl font-bold">{stats.totalAbgleiche}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {bestellungen.length} Bestellungen • {auftragsbestaetigungen.length} Bestätigungen
+            </p>
+          </CardContent>
+        </Card>
 
-                  return (
-                    <div key={abgleich.record_id} className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant={abgleich.fields.freigabestatus === 'abgelehnt' ? 'destructive' : 'default'}>
-                              {abgleich.fields.freigabestatus === 'offen' && 'Offen'}
-                              {abgleich.fields.freigabestatus === 'abgelehnt' && 'Abgelehnt'}
-                              {abgleich.fields.freigabestatus === 'in_pruefung' && 'In Prüfung'}
-                              {abgleich.fields.freigabestatus === 'freigegeben' && 'Freigegeben'}
-                            </Badge>
-                            {bestellung && (
-                              <span className="text-sm font-medium text-slate-900">
-                                Bestellung: {bestellung.fields.bestellnummer}
-                              </span>
-                            )}
-                          </div>
+        {/* Offene Abgleiche */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Offene Abgleiche</CardTitle>
+            <Clock className="h-4 w-4 text-warning" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.offeneAbgleiche}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.inPruefung} in Prüfung
+            </p>
+          </CardContent>
+        </Card>
 
-                          {bestellung && (
-                            <p className="text-sm text-slate-600 mb-2">
-                              {bestellung.fields.artikelbezeichnung} ({bestellung.fields.artikelnummer})
-                            </p>
-                          )}
+        {/* Abweichungen */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Abweichungen erkannt</CardTitle>
+            <AlertCircle className="h-4 w-4 text-danger" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.abweichungenCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.kritischeAbweichungen} kritisch
+            </p>
+          </CardContent>
+        </Card>
 
-                          <div className="flex flex-wrap gap-2">
-                            {abgleich.fields.abweichungstyp?.split(',').map(typ => {
-                              const trimmedTyp = typ.trim();
-                              let label = trimmedTyp;
-                              let icon = null;
+        {/* Freigegeben */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Freigegeben</CardTitle>
+            <CheckCircle className="h-4 w-4 text-success" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.freigegeben}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.abgelehnt} abgelehnt
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
-                              if (trimmedTyp === 'mengenabweichung') {
-                                label = 'Mengenabweichung';
-                                icon = <TrendingDown className="h-3 w-3" />;
-                              } else if (trimmedTyp === 'preisabweichung') {
-                                label = 'Preisabweichung';
-                                icon = <TrendingUp className="h-3 w-3" />;
-                              } else if (trimmedTyp === 'artikelnummernabweichung') {
-                                label = 'Artikelnr.-Abweichung';
-                                icon = <AlertCircle className="h-3 w-3" />;
-                              } else if (trimmedTyp === 'lieferterminabweichung') {
-                                label = 'Liefertermin-Abweichung';
-                                icon = <Clock className="h-3 w-3" />;
-                              }
-
-                              return (
-                                <Badge key={trimmedTyp} variant="outline" className="flex items-center gap-1">
-                                  {icon}
-                                  {label}
-                                </Badge>
-                              );
-                            })}
-                          </div>
-
-                          {abgleich.fields.abweichungsbegruendung && (
-                            <p className="text-sm text-slate-500 mt-2 italic">
-                              "{abgleich.fields.abweichungsbegruendung}"
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="text-right ml-4">
-                          {abgleich.fields.mengenabweichung_prozent !== undefined && (
-                            <div className="text-sm">
-                              <span className="text-slate-600">Menge:</span>
-                              <span className={`ml-1 font-semibold ${Math.abs(abgleich.fields.mengenabweichung_prozent) > 10 ? 'text-red-600' : 'text-orange-600'}`}>
-                                {abgleich.fields.mengenabweichung_prozent > 0 ? '+' : ''}{abgleich.fields.mengenabweichung_prozent.toFixed(1)}%
-                              </span>
-                            </div>
-                          )}
-                          {abgleich.fields.preisabweichung_prozent !== undefined && (
-                            <div className="text-sm">
-                              <span className="text-slate-600">Preis:</span>
-                              <span className={`ml-1 font-semibold ${Math.abs(abgleich.fields.preisabweichung_prozent) > 10 ? 'text-red-600' : 'text-orange-600'}`}>
-                                {abgleich.fields.preisabweichung_prozent > 0 ? '+' : ''}{abgleich.fields.preisabweichung_prozent.toFixed(1)}%
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {kritischeFaelle.length > 10 && (
-                  <p className="text-sm text-slate-500 text-center pt-2">
-                    ... und {kritischeFaelle.length - 10} weitere kritische Fälle
-                  </p>
-                )}
-              </div>
+      {/* Charts Row 1 */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Abweichungstypen */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Abweichungstypen</CardTitle>
+            <CardDescription>Verteilung der erkannten Abweichungsarten</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {getAbweichungstypenData().length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={getAbweichungstypenData()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} fontSize={12} />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill={COLORS.primary} />
+                </BarChart>
+              </ResponsiveContainer>
             ) : (
-              <div className="text-center py-8 text-slate-400">
-                <CheckCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>Keine kritischen Fälle vorhanden</p>
-                <p className="text-sm mt-1">Alle Abweichungen sind freigegeben oder in Prüfung</p>
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                Keine Abweichungen vorhanden
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Footer Stats */}
-        <div className="mt-8 text-center text-sm text-slate-500">
-          <p>
-            Dashboard aktualisiert am {format(new Date(), 'PPP', { locale: de })} um {format(new Date(), 'HH:mm')} Uhr
-          </p>
-        </div>
-      </main>
+        {/* Freigabestatus Verteilung */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Freigabestatus</CardTitle>
+            <CardDescription>Aktuelle Verteilung der Freigabestatus</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {getFreigabestatusData().length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={getFreigabestatusData()}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {getFreigabestatusData().map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                Keine Daten verfügbar
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Row 2 */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Toleranzanalyse */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Toleranzanalyse</CardTitle>
+            <CardDescription>Abgleiche innerhalb und außerhalb der definierten Toleranzen</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {getToleranzanalyseData().length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={getToleranzanalyseData()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="Anzahl" fill={COLORS.info} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                Keine Toleranzdaten verfügbar
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Durchschnittliche Abweichungen */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Durchschnittliche Abweichungen</CardTitle>
+            <CardDescription>Durchschnittliche Preis- und Mengenabweichungen in Prozent</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6 pt-4">
+              {/* Preisabweichung */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Preisabweichung</span>
+                  <Badge variant={stats.durchschnittlichePreisabweichung > 5 ? "destructive" : "secondary"}>
+                    {stats.durchschnittlichePreisabweichung.toFixed(2)}%
+                  </Badge>
+                </div>
+                <div className="w-full bg-secondary rounded-full h-3">
+                  <div
+                    className={`h-3 rounded-full ${stats.durchschnittlichePreisabweichung > 5 ? 'bg-red-500' : 'bg-blue-500'}`}
+                    style={{ width: `${Math.min(stats.durchschnittlichePreisabweichung * 10, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Mengenabweichung */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Mengenabweichung</span>
+                  <Badge variant={stats.durchschnittlicheMengenabweichung > 5 ? "destructive" : "secondary"}>
+                    {stats.durchschnittlicheMengenabweichung.toFixed(2)}%
+                  </Badge>
+                </div>
+                <div className="w-full bg-secondary rounded-full h-3">
+                  <div
+                    className={`h-3 rounded-full ${stats.durchschnittlicheMengenabweichung > 5 ? 'bg-red-500' : 'bg-green-500'}`}
+                    style={{ width: `${Math.min(stats.durchschnittlicheMengenabweichung * 10, 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Info Text */}
+              <div className="pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  {stats.durchschnittlichePreisabweichung > 5 || stats.durchschnittlicheMengenabweichung > 5 ? (
+                    <>
+                      <TrendingUp className="inline h-4 w-4 text-red-500 mr-1" />
+                      Erhöhte Abweichungen erkannt - Überprüfung empfohlen
+                    </>
+                  ) : (
+                    <>
+                      <TrendingDown className="inline h-4 w-4 text-green-500 mr-1" />
+                      Abweichungen im normalen Bereich
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity - Letzte Abgleichsergebnisse */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Letzte Abgleichsergebnisse</CardTitle>
+          <CardDescription>Die 5 neuesten Abgleichsergebnisse</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {abgleichsergebnisse
+              .sort((a, b) => new Date(b.createdat).getTime() - new Date(a.createdat).getTime())
+              .slice(0, 5)
+              .map((abgleich) => (
+                <div key={abgleich.record_id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                  <div className="flex items-center gap-4 flex-1">
+                    {/* Status Icon */}
+                    {abgleich.fields.freigabestatus === 'freigegeben' && (
+                      <CheckCircle className="h-5 w-5 text-success flex-shrink-0" />
+                    )}
+                    {abgleich.fields.freigabestatus === 'abgelehnt' && (
+                      <XCircle className="h-5 w-5 text-danger flex-shrink-0" />
+                    )}
+                    {abgleich.fields.freigabestatus === 'in_pruefung' && (
+                      <Clock className="h-5 w-5 text-warning flex-shrink-0" />
+                    )}
+                    {abgleich.fields.freigabestatus === 'offen' && (
+                      <AlertCircle className="h-5 w-5 text-info flex-shrink-0" />
+                    )}
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium">
+                          {abgleich.fields.artikelnummer_bestellung || 'Keine Artikelnummer'}
+                        </span>
+                        {abgleich.fields.abweichungen_vorhanden && (
+                          <Badge variant="destructive" className="text-xs">
+                            Abweichungen
+                          </Badge>
+                        )}
+                        {!abgleich.fields.innerhalb_preistoleranz && abgleich.fields.preisabweichung_prozent != null && (
+                          <Badge variant="outline" className="text-xs border-red-500 text-red-500">
+                            Preis kritisch
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {abgleich.fields.abgleichsdatum
+                          ? format(new Date(abgleich.fields.abgleichsdatum), 'PPp', { locale: de })
+                          : format(new Date(abgleich.createdat), 'PPp', { locale: de })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Status Badge */}
+                  <Badge
+                    variant={
+                      abgleich.fields.freigabestatus === 'freigegeben' ? 'default' :
+                      abgleich.fields.freigabestatus === 'abgelehnt' ? 'destructive' :
+                      abgleich.fields.freigabestatus === 'in_pruefung' ? 'secondary' :
+                      'outline'
+                    }
+                  >
+                    {abgleich.fields.freigabestatus === 'offen' && 'Offen'}
+                    {abgleich.fields.freigabestatus === 'in_pruefung' && 'In Prüfung'}
+                    {abgleich.fields.freigabestatus === 'freigegeben' && 'Freigegeben'}
+                    {abgleich.fields.freigabestatus === 'abgelehnt' && 'Abgelehnt'}
+                  </Badge>
+                </div>
+              ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

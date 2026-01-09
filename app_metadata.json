@@ -146,15 +146,6 @@
           "fulltype": "date/date",
           "description": "A calendar date consisting of year, month and day. (Or `null`/`None`)\n\nThe field value will be a string in the format `<YYYY>-<MM>-<DD>` or `null`.\n\nFor example: `1642-12-25`."
         },
-        "bestellung": {
-          "identifier": "bestellung",
-          "label": "Zugeh\u00f6rige Bestellung",
-          "type": "applookup",
-          "subtype": "select",
-          "fulltype": "applookup/select",
-          "description": "A reference to another LivingApp record from a target lookup app (or `null`).\n\nThe field value will be a valid record URL in the form `https://<hostname>/rest/apps/<app-id>/records/<record-id>` or `null`.",
-          "lookup_app": "https://my.living-apps.de/rest/apps/694532fe73b552902caa58ed"
-        },
         "pdf_dokument": {
           "identifier": "pdf_dokument",
           "label": "PDF-Auftragsbest\u00e4tigung",
@@ -205,19 +196,95 @@
         }
       }
     },
-    "abgleichsergebnisse": {
-      "app_id": "694533049c70094c80005f30",
-      "name": "Abgleichsergebnisse",
+    "freigabe_workflow": {
+      "app_id": "69453305f1dda178412288b8",
+      "name": "Freigabe-Workflow",
       "controls": {
-        "bestellung": {
-          "identifier": "bestellung",
-          "label": "Bestellung",
+        "abgleichsergebnis": {
+          "identifier": "abgleichsergebnis",
+          "label": "Abgleichsergebnis",
           "type": "applookup",
           "subtype": "select",
           "fulltype": "applookup/select",
           "description": "A reference to another LivingApp record from a target lookup app (or `null`).\n\nThe field value will be a valid record URL in the form `https://<hostname>/rest/apps/<app-id>/records/<record-id>` or `null`.",
-          "lookup_app": "https://my.living-apps.de/rest/apps/694532fe73b552902caa58ed"
+          "lookup_app": "https://my.living-apps.de/rest/apps/694533049c70094c80005f30"
         },
+        "pruefer_vorname": {
+          "identifier": "pruefer_vorname",
+          "label": "Vorname Pr\u00fcfer",
+          "type": "string",
+          "subtype": "text",
+          "fulltype": "string/text",
+          "description": "A string value not longer than 4000 characters (or `null`)."
+        },
+        "pruefer_nachname": {
+          "identifier": "pruefer_nachname",
+          "label": "Nachname Pr\u00fcfer",
+          "type": "string",
+          "subtype": "text",
+          "fulltype": "string/text",
+          "description": "A string value not longer than 4000 characters (or `null`)."
+        },
+        "pruefdatum": {
+          "identifier": "pruefdatum",
+          "label": "Pr\u00fcfdatum",
+          "type": "date",
+          "subtype": "datetimeminute",
+          "fulltype": "date/datetimeminute",
+          "description": "A specific moment in time consisting of year, month, day, hour and minute. (Or `null`/`None`)\n\nThe field value will be a string in the format `<YYYY>-<MM>-<DD>T<HH>:<MM>` or `null`.\n\nFor example: `1879-03-14T11:30`."
+        },
+        "freigabeentscheidung": {
+          "identifier": "freigabeentscheidung",
+          "label": "Entscheidung",
+          "type": "lookup",
+          "subtype": "radio",
+          "fulltype": "lookup/radio",
+          "description": "One selected option of multiple available options (or `null`).\n\nThe available options are defined in the `lookup_data` attribute of this control's LivingApp.\n\nThe field value will be the key in this `lookup_data` attribute or `null`.",
+          "lookup_data": {
+            "freigegeben": "Freigegeben",
+            "rueckfrage": "R\u00fcckfrage an Lieferant",
+            "freigegeben_mit_auflagen": "Freigegeben mit Auflagen",
+            "abgelehnt": "Abgelehnt"
+          }
+        },
+        "kommentar": {
+          "identifier": "kommentar",
+          "label": "Kommentar zur Entscheidung",
+          "type": "string",
+          "subtype": "textarea",
+          "fulltype": "string/textarea",
+          "description": "A string value that can contain multiple lines of text (or `null`)."
+        },
+        "korrekturmassnahmen": {
+          "identifier": "korrekturmassnahmen",
+          "label": "Erforderliche Korrekturma\u00dfnahmen",
+          "type": "string",
+          "subtype": "textarea",
+          "fulltype": "string/textarea",
+          "description": "A string value that can contain multiple lines of text (or `null`)."
+        },
+        "nachverfolgung_erforderlich": {
+          "identifier": "nachverfolgung_erforderlich",
+          "label": "Nachverfolgung erforderlich",
+          "type": "bool",
+          "subtype": null,
+          "fulltype": "bool",
+          "description": "A boolean value, i.e. `true` or `false` (or `null`)."
+        },
+        "nachverfolgungsdatum": {
+          "identifier": "nachverfolgungsdatum",
+          "label": "Nachverfolgung bis",
+          "type": "date",
+          "subtype": "date",
+          "fulltype": "date/date",
+          "description": "A calendar date consisting of year, month and day. (Or `null`/`None`)\n\nThe field value will be a string in the format `<YYYY>-<MM>-<DD>` or `null`.\n\nFor example: `1642-12-25`."
+        }
+      }
+    },
+    "abgleichsergebnisse": {
+      "app_id": "694533049c70094c80005f30",
+      "name": "Abgleichsergebnisse",
+      "controls": {
         "auftragsbestaetigung": {
           "identifier": "auftragsbestaetigung",
           "label": "Auftragsbest\u00e4tigung",
@@ -366,99 +433,14 @@
           }
         }
       }
-    },
-    "freigabe_workflow": {
-      "app_id": "69453305f1dda178412288b8",
-      "name": "Freigabe-Workflow",
-      "controls": {
-        "abgleichsergebnis": {
-          "identifier": "abgleichsergebnis",
-          "label": "Abgleichsergebnis",
-          "type": "applookup",
-          "subtype": "select",
-          "fulltype": "applookup/select",
-          "description": "A reference to another LivingApp record from a target lookup app (or `null`).\n\nThe field value will be a valid record URL in the form `https://<hostname>/rest/apps/<app-id>/records/<record-id>` or `null`.",
-          "lookup_app": "https://my.living-apps.de/rest/apps/694533049c70094c80005f30"
-        },
-        "pruefer_vorname": {
-          "identifier": "pruefer_vorname",
-          "label": "Vorname Pr\u00fcfer",
-          "type": "string",
-          "subtype": "text",
-          "fulltype": "string/text",
-          "description": "A string value not longer than 4000 characters (or `null`)."
-        },
-        "pruefer_nachname": {
-          "identifier": "pruefer_nachname",
-          "label": "Nachname Pr\u00fcfer",
-          "type": "string",
-          "subtype": "text",
-          "fulltype": "string/text",
-          "description": "A string value not longer than 4000 characters (or `null`)."
-        },
-        "pruefdatum": {
-          "identifier": "pruefdatum",
-          "label": "Pr\u00fcfdatum",
-          "type": "date",
-          "subtype": "datetimeminute",
-          "fulltype": "date/datetimeminute",
-          "description": "A specific moment in time consisting of year, month, day, hour and minute. (Or `null`/`None`)\n\nThe field value will be a string in the format `<YYYY>-<MM>-<DD>T<HH>:<MM>` or `null`.\n\nFor example: `1879-03-14T11:30`."
-        },
-        "freigabeentscheidung": {
-          "identifier": "freigabeentscheidung",
-          "label": "Entscheidung",
-          "type": "lookup",
-          "subtype": "radio",
-          "fulltype": "lookup/radio",
-          "description": "One selected option of multiple available options (or `null`).\n\nThe available options are defined in the `lookup_data` attribute of this control's LivingApp.\n\nThe field value will be the key in this `lookup_data` attribute or `null`.",
-          "lookup_data": {
-            "abgelehnt": "Abgelehnt",
-            "rueckfrage": "R\u00fcckfrage an Lieferant",
-            "freigegeben": "Freigegeben",
-            "freigegeben_mit_auflagen": "Freigegeben mit Auflagen"
-          }
-        },
-        "kommentar": {
-          "identifier": "kommentar",
-          "label": "Kommentar zur Entscheidung",
-          "type": "string",
-          "subtype": "textarea",
-          "fulltype": "string/textarea",
-          "description": "A string value that can contain multiple lines of text (or `null`)."
-        },
-        "korrekturmassnahmen": {
-          "identifier": "korrekturmassnahmen",
-          "label": "Erforderliche Korrekturma\u00dfnahmen",
-          "type": "string",
-          "subtype": "textarea",
-          "fulltype": "string/textarea",
-          "description": "A string value that can contain multiple lines of text (or `null`)."
-        },
-        "nachverfolgung_erforderlich": {
-          "identifier": "nachverfolgung_erforderlich",
-          "label": "Nachverfolgung erforderlich",
-          "type": "bool",
-          "subtype": null,
-          "fulltype": "bool",
-          "description": "A boolean value, i.e. `true` or `false` (or `null`)."
-        },
-        "nachverfolgungsdatum": {
-          "identifier": "nachverfolgungsdatum",
-          "label": "Nachverfolgung bis",
-          "type": "date",
-          "subtype": "date",
-          "fulltype": "date/date",
-          "description": "A calendar date consisting of year, month and day. (Or `null`/`None`)\n\nThe field value will be a string in the format `<YYYY>-<MM>-<DD>` or `null`.\n\nFor example: `1642-12-25`."
-        }
-      }
     }
   },
   "metadata": {
     "apps_list": [
       "Bestellungen",
       "Auftragsbest\u00e4tigungen",
-      "Abgleichsergebnisse",
-      "Freigabe-Workflow"
+      "Freigabe-Workflow",
+      "Abgleichsergebnisse"
     ]
   }
 }
